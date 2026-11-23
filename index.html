@@ -1,0 +1,412 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koleksi Tulisan</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f5f3;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+    }
+
+    h1 {
+      color: #24594b;
+    }
+
+    .kotak {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px #0001;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+    }
+
+    button {
+      background: #24594b;
+      color: white;
+      border: none;
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+
+<meta name="theme-color" content="#24594b">
+</head>
+
+<body>
+  <div class="container">
+    <h1>📚 Koleksi Tulisan</h1>
+
+    <div class="kotak">
+      <h3>Tambah Tulisan Baru</h3>
+
+      <input type="text" placeholder="Judul tulisan">
+
+      <select id="kategori">
+  <option value="">Pilih Kategori</option>
+  <option value="Motivasi">Motivasi</option>
+  <option value="Cerita">Cerita</option>
+  <option value="Pengalaman">Pengalaman</option>
+  <option value="Catatan Harian">Catatan Harian</option>
+  <option value="Agama">Agama</option>
+  <option value="Resep">Resep</option>
+  <option value="Lainnya">Lainnya</option>
+      </select>
+
+      <textarea rows="6"
+        placeholder="Tulis sesuatu di sini..."></textarea>
+<input type="file" id="foto"
+accept="image/*">
+            <button onclick="simpanTulisan()">
+        Simpan Tulisan
+      </button>
+    </div>
+    <h3>Koleksi Saya</h3>
+
+<button onclick="backupTulisan()">
+  💾 Backup Tulisan
+</button>
+
+<input
+  type="file"
+  id="fileBackup"
+  accept=".json"
+  onchange="pulihkanTulisan(event)"
+>
+
+<h3>Daftar Tulisan</h3>
+
+<input
+  type="text"
+  id="pencarian"
+  placeholder="Cari judul, kategori, atau isi..."
+  oninput="cariTulisan()"
+>
+
+<div id="daftarTulisan"></div>
+  </div>
+  
+<script>
+
+async function simpanTulisan() {
+  const judul = document.querySelector(
+    'input[placeholder="Judul tulisan"]'
+  ).value;
+
+  const kategori = document.getElementById("kategori").value;
+
+  const isi = document.querySelector("textarea").value;
+
+  const file = document.getElementById("foto").files[0];
+
+  if (!judul.trim() || !isi.trim() || !kategori) {
+    alert("Judul dan isi harus diisi!");
+    return;
+  }
+
+  let foto = "";
+
+  if (file) {
+    if (!file.type.startsWith("image/")) {
+      alert("Pilih file gambar!");
+      return;
+    }
+
+    foto = await kompresFoto(file);
+  }
+
+  let koleksi = JSON.parse(
+    localStorage.getItem("koleksi") || "[]"
+  );
+
+  koleksi.push({
+    id: Date.now(),
+    judul: judul,
+    kategori: kategori,
+    isi: isi,
+    foto: foto
+  });
+
+  try {
+    localStorage.setItem("koleksi", JSON.stringify(koleksi));
+  } catch (error) {
+    alert("Penyimpanan penuh. Coba foto yang lebih kecil.");
+    return;
+  }
+
+  tampilkanTulisan();
+
+  document.querySelectorAll("input, textarea").forEach(function(el) {
+    el.value = "";
+  });
+
+  alert("Tulisan dan foto berhasil disimpan!");
+}
+
+function kompresFoto(file) {
+  return new Promise(function(resolve, reject) {
+    const reader = new FileReader();
+
+    reader.onload = function() {
+      const gambar = new Image();
+
+      gambar.onload = function() {
+        const canvas = document.createElement("canvas");
+        const skala = Math.min(1, 800 / Math.max(
+          gambar.width, gambar.height
+        ));
+
+        canvas.width = gambar.width * skala;
+        canvas.height = gambar.height * skala;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(gambar, 0, 0, canvas.width, canvas.height);
+
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      };
+
+      gambar.onerror = reject;
+      gambar.src = reader.result;
+    };
+
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+
+function tampilkanTulisan() {
+  let koleksi = JSON.parse(
+    localStorage.getItem("koleksi") || "[]"
+  );
+
+  const daftar = document.getElementById("daftarTulisan");
+  daftar.innerHTML = "";
+
+  koleksi.forEach(function(item) {
+    const kotak = document.createElement("div");
+    kotak.className = "kotak";
+
+    const judul = document.createElement("h3");
+    judul.textContent = item.judul;
+
+    const kategori = document.createElement("p");
+    kategori.textContent = "Kategori: " + item.kategori;
+
+    const isi = document.createElement("p");
+    isi.textContent = item.isi;
+if (item.foto) {
+  const gambar = document.createElement("img");
+  gambar.src = item.foto;
+  gambar.style.width = "100%";
+  gambar.style.maxHeight = "250px";
+  gambar.style.objectFit = "contain";
+  gambar.style.marginTop = "10px";
+
+  kotak.appendChild(gambar);
+  }
+    const tombolEdit = document.createElement("button");
+    tombolEdit.textContent = "Edit";
+    tombolEdit.onclick = function() {
+      editTulisan(item.id);
+    };
+
+    const tombolHapus = document.createElement("button");
+    tombolHapus.textContent = "Hapus";
+    tombolHapus.style.background = "red";
+    tombolHapus.onclick = function() {
+      hapusTulisan(item.id);
+    };
+
+    kotak.appendChild(judul);
+    kotak.appendChild(kategori);
+    kotak.appendChild(isi);
+    kotak.appendChild(tombolEdit);
+    kotak.appendChild(tombolHapus);
+
+    daftar.appendChild(kotak);
+  });
+}
+
+function editTulisan(id) {
+  let koleksi = JSON.parse(
+    localStorage.getItem("koleksi") || "[]"
+  );
+
+  let item = koleksi.find(function(t) {
+    return t.id === id;
+  });
+
+  if (!item) return;
+
+  let judulBaru = prompt("Ubah judul:", item.judul);
+  if (judulBaru === null) return;
+
+  let kategoriBaru = prompt("Ubah kategori:", item.kategori);
+  if (kategoriBaru === null) return;
+
+  let isiBaru = prompt("Ubah isi:", item.isi);
+  if (isiBaru === null) return;
+
+  if (judulBaru.trim() === "" || isiBaru.trim() === "") {
+    alert("Judul dan isi tidak boleh kosong!");
+    return;
+  }
+
+  item.judul = judulBaru;
+  item.kategori = kategoriBaru;
+  item.isi = isiBaru;
+
+  localStorage.setItem("koleksi", JSON.stringify(koleksi));
+
+  tampilkanTulisan();
+  alert("Tulisan berhasil diedit!");
+}
+
+function hapusTulisan(id) {
+  if (!confirm("Yakin ingin menghapus tulisan?")) return;
+
+  let koleksi = JSON.parse(
+    localStorage.getItem("koleksi") || "[]"
+  );
+
+  koleksi = koleksi.filter(function(t) {
+    return t.id !== id;
+  });
+
+  localStorage.setItem("koleksi", JSON.stringify(koleksi));
+
+  tampilkanTulisan();
+  alert("Tulisan berhasil dihapus!");
+}
+
+function cariTulisan() {
+  const kata = document.getElementById("pencarian")
+    .value.toLowerCase();
+
+  const koleksi = JSON.parse(
+    localStorage.getItem("koleksi") || "[]"
+  );
+
+  const hasil = koleksi.filter(function(item) {
+    return (
+      item.judul.toLowerCase().includes(kata) ||
+      item.kategori.toLowerCase().includes(kata) ||
+      item.isi.toLowerCase().includes(kata)
+    );
+  });
+
+  tampilkanHasil(hasil);
+}
+
+function tampilkanHasil(data) {
+  const daftar = document.getElementById("daftarTulisan");
+  daftar.innerHTML = "";
+
+  data.forEach(function(item) {
+    const kotak = document.createElement("div");
+    kotak.className = "kotak";
+
+    const judul = document.createElement("h3");
+    judul.textContent = item.judul;
+
+    const kategori = document.createElement("p");
+    kategori.textContent = "Kategori: " + item.kategori;
+
+    const isi = document.createElement("p");
+    isi.textContent = item.isi;
+
+    kotak.appendChild(judul);
+    kotak.appendChild(kategori);
+    kotak.appendChild(isi);
+
+    daftar.appendChild(kotak);
+  });
+}
+
+function backupTulisan() {
+  const data = localStorage.getItem("koleksi") || "[]";
+
+  const file = new Blob([data], {
+    type: "application/json"
+  });
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(file);
+  link.download = "backup-koleksi-tulisan.json";
+
+  link.click();
+
+  URL.revokeObjectURL(link.href);
+
+  alert("Backup berhasil dibuat!");
+}
+
+function pulihkanTulisan(event) {
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function() {
+    try {
+      const data = JSON.parse(reader.result);
+
+      if (!Array.isArray(data)) {
+        throw new Error("Format tidak sesuai");
+      }
+
+      if (!confirm("Pulihkan backup? Data lama akan diganti.")) {
+        return;
+      }
+
+      localStorage.setItem("koleksi", JSON.stringify(data));
+
+      tampilkanTulisan();
+
+      alert("Backup berhasil dipulihkan!");
+
+    } catch (error) {
+      alert("File backup tidak valid!");
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+tampilkanTulisan();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function() {
+    navigator.serviceWorker.register("./sw.js")
+      .then(function() {
+        console.log("Offline siap dipersiapkan!");
+      })
+      .catch(function(error) {
+        console.log("Pendaftaran gagal:", error);
+      });
+  });
+}
+</script>
+</body>
+</html>

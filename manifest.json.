@@ -1,0 +1,19 @@
+
+{
+  "name": "Koleksi Tulisan",
+  "short_name": "Koleksi",
+  "description": "Aplikasi koleksi tulisan pribadi",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f1f5f3",
+  "theme_color": "#24594b",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
